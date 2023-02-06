@@ -6,5 +6,9 @@ import com.brewery.wholesaler.assessment.data.entity.WholesalerStock;
 @Repository
 public interface WholesalerStockRepository extends BaseRepository<WholesalerStock, String> {
 
-	WholesalerStock findByWholesalerIdAndBeerId(String id, String beerId);
+	WholesalerStock findByWholesalerIdAndBeerId(String wholesalerId, String beerId);
+
+	long countByWholesalerIdAndBeerId(String wholesalerId, String beerId);
+
+	long countByBeerId(String beerId);
 }

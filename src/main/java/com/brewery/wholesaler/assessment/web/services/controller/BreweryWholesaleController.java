@@ -3,6 +3,7 @@ package com.brewery.wholesaler.assessment.web.services.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -37,7 +38,7 @@ public class BreweryWholesaleController {
 	}
 
 	@PostMapping(value = "/beers")
-	public BaseResponse<BeerResponse> addBeer(@RequestBody BeerRequest request) throws Exception {
+	public BaseResponse<BeerResponse> addBeer(@RequestBody @Validated BeerRequest request) throws Exception {
 		BaseResponse<BeerResponse> response = new BaseResponse<>();
 		response.setData(breweryWholesaleService.addBeer(request));
 		return response;
@@ -51,8 +52,8 @@ public class BreweryWholesaleController {
 	}
 
 	@PostMapping(value = "/wholesaler-stock")
-	public BaseResponse<WholesalerStockResponse> addWholesalerStock(@RequestBody WholesalerStockRequest request)
-			throws Exception {
+	public BaseResponse<WholesalerStockResponse> addWholesalerStock(
+			@RequestBody @Validated WholesalerStockRequest request) throws Exception {
 		BaseResponse<WholesalerStockResponse> response = new BaseResponse<>();
 		response.setData(breweryWholesaleService.addWholesalerStock(request));
 		return response;
@@ -60,14 +61,14 @@ public class BreweryWholesaleController {
 
 	@PatchMapping(value = "/wholesaler-stock/{wholesalerStockId}")
 	public BaseResponse<WholesalerStockResponse> patchWholesaletStock(@PathVariable String wholesalerStockId,
-			@RequestBody PatchWholesalerStockRequest request) throws Exception {
+			@RequestBody @Validated PatchWholesalerStockRequest request) throws Exception {
 		BaseResponse<WholesalerStockResponse> response = new BaseResponse<>();
 		response.setData(breweryWholesaleService.patchWholesaletStock(wholesalerStockId, request));
 		return response;
 	}
 
 	@PostMapping(value = "/request-quote")
-	public BaseResponse<QuoteResponse> requestQuote(@RequestBody QuoteRequest request) throws Exception {
+	public BaseResponse<QuoteResponse> requestQuote(@RequestBody @Validated QuoteRequest request) throws Exception {
 		BaseResponse<QuoteResponse> response = new BaseResponse<>();
 		response.setData(breweryWholesaleService.requestQuote(request));
 		return response;

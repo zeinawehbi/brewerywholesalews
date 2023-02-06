@@ -10,8 +10,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -28,7 +26,7 @@ public class WholesalerStock implements Serializable {
 	private String id;
 
 	@Column(name = "STOCK")
-	private BigDecimal stock;
+	private Integer stock;
 
 	@ManyToOne
 	@JoinColumn(name = "BEER_ID")

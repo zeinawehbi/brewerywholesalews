@@ -22,8 +22,6 @@ import com.brewery.wholesaler.assessment.business.response.WholesalerStockRespon
 import com.brewery.wholesaler.assessment.business.response.beans.BeerQuoteResponse;
 import com.brewery.wholesaler.assessment.business.response.beans.DataBaseResponse;
 import com.brewery.wholesaler.assessment.data.entity.Beer;
-import com.brewery.wholesaler.assessment.data.entity.Brewery;
-import com.brewery.wholesaler.assessment.data.entity.Wholesaler;
 import com.brewery.wholesaler.assessment.data.entity.WholesalerStock;
 import com.brewery.wholesaler.assessment.utils.ResponseUtilities;
 
@@ -65,8 +63,7 @@ public class BreweryWholesaleService {
 			throw new Exception("Brewery doesn't exist");
 		}
 
-		Beer beer = beerService.save(Beer.builder().brewery(Brewery.builder().id(request.getBreweryId()).build())
-				.alcoholContent(request.getAlcoholContent()).name(request.getName()).price(request.getPrice()).build());
+		Beer beer = beerService.addBeer(request);
 		if (beer == null) {
 			throw new Exception("Beer was not added successfully!");
 		}
@@ -78,6 +75,9 @@ public class BreweryWholesaleService {
 		if (!beerService.existsById(beerId)) {
 			throw new Exception("Beer doesn't exist!");
 		}
+		if (wholesalerStockService.getCountByBeerId(beerId) != 0) {
+			throw new Exception("Beer cannot be deleted as it is already in a wholesaler's stock");
+		}
 
 		beerService.deleteById(beerId);
 		return responseUtilities.getContent("Beer is deleted successfully!");
@@ -85,6 +85,11 @@ public class BreweryWholesaleService {
 
 	public DataBaseResponse<WholesalerStockResponse> addWholesalerStock(WholesalerStockRequest request)
 			throws Exception {
+		if (wholesalerStockService.getCountByWholesalerIdAndBeerId(request.getWholesalerId(),
+				request.getBeerId()) != 0) {
+			throw new Exception("Stock of this beer already exists for this wholesaler");
+		}
+
 		if (!wholesalerService.existsById(request.getWholesalerId())) {
 			throw new Exception("The wholesaler must exist");
 		}
@@ -93,9 +98,7 @@ public class BreweryWholesaleService {
 			throw new Exception("Beer doesn't exist!");
 		}
 
-		WholesalerStock wholesalerStock = wholesalerStockService.save(
-				WholesalerStock.builder().stock(request.getStock()).beer(Beer.builder().id(request.getBeerId()).build())
-						.wholesaler(Wholesaler.builder().id(request.getWholesalerId()).build()).build());
+		WholesalerStock wholesalerStock = wholesalerStockService.addWholesalerStock(request);
 		if (wholesalerStock == null) {
 			throw new Exception("Stock was not added successfully!");
 		}
@@ -110,9 +113,8 @@ public class BreweryWholesaleService {
 		if (wholesalerStock == null || !wholesalerStock.isPresent()) {
 			throw new Exception("The wholesaler stock doesn't exist");
 		}
-		WholesalerStock wholesalerStockEntity = wholesalerStock.get();
-		wholesalerStockEntity.setStock(request.getStock());
-		wholesalerStockEntity = wholesalerStockService.save(wholesalerStockEntity);
+		WholesalerStock wholesalerStockEntity = wholesalerStockService.patchWholesalerStock(wholesalerStock.get(),
+				request);
 		if (wholesalerStockEntity == null) {
 			throw new Exception("Stock was not patched successfully!");
 		}
@@ -121,14 +123,11 @@ public class BreweryWholesaleService {
 	}
 
 	public DataBaseResponse<QuoteResponse> requestQuote(QuoteRequest request) throws Exception {
-		if (request == null || request.getBeerList() == null || request.getBeerList().isEmpty()) {
-			throw new Exception("The order cannot be empty");
-		}
 		String wholesalerId = request.getWholesalerId();
 		if (!wholesalerService.existsById(wholesalerId)) {
 			throw new Exception("The wholesaler must exist");
 		}
-		Map<String, BigDecimal> beerQuoteMap = new HashMap<>();
+		Map<String, Integer> beerQuoteMap = new HashMap<>();
 		try {
 			beerQuoteMap = request.getBeerList().stream()
 					.collect(Collectors.toMap(BeerQuoteRequest::getBeerId, BeerQuoteRequest::getNumberOfBeers));
@@ -137,35 +136,32 @@ public class BreweryWholesaleService {
 		}
 
 		WholesalerStock wholesalerStock = null;
-		BigDecimal totalNumberOfBeers = new BigDecimal(0);
+		Integer totalNumberOfBeers = 0;
 		BigDecimal totalPrice = new BigDecimal(0);
 		List<BeerQuoteResponse> beerQuoteList = new ArrayList<>();
-		for (Map.Entry<String, BigDecimal> beerQuote : beerQuoteMap.entrySet()) {
+		for (Map.Entry<String, Integer> beerQuote : beerQuoteMap.entrySet()) {
 			wholesalerStock = wholesalerStockService.getWholesalerStockByWholesalerIdAndBeerId(wholesalerId,
 					beerQuote.getKey());
 			if (wholesalerStock == null) {
 				throw new Exception("The beer must be sold by the wholesaler");
 			}
 
-			if (beerQuote.getValue() == null || beerQuote.getValue().compareTo(new BigDecimal(0)) == 0) {
-				throw new Exception("The order cannot be empty");
-			}
-
-			if (beerQuote.getValue().compareTo(wholesalerStock.getStock()) > 0) {
+			if (beerQuote.getValue() > wholesalerStock.getStock()) {
 				throw new Exception("The number of beers ordered cannot be greater than the wholesaler's stock");
 			}
-			totalNumberOfBeers = totalNumberOfBeers.add(beerQuote.getValue());
-			totalPrice = totalPrice.add(beerQuote.getValue().multiply(wholesalerStock.getBeer().getPrice()));
+			totalNumberOfBeers = totalNumberOfBeers + beerQuote.getValue();
+			totalPrice = totalPrice
+					.add(new BigDecimal(beerQuote.getValue()).multiply(wholesalerStock.getBeer().getPrice()));
 			beerQuoteList.add(BeerQuoteResponse.builder().beerId(beerQuote.getKey()).numberOfBeers(beerQuote.getValue())
-					.totalPrice(beerQuote.getValue().multiply(wholesalerStock.getBeer().getPrice()).setScale(2,
-							BigDecimal.ROUND_HALF_UP))
+					.totalPrice(new BigDecimal(beerQuote.getValue()).multiply(wholesalerStock.getBeer().getPrice())
+							.setScale(2, BigDecimal.ROUND_HALF_UP))
 					.build());
 		}
 
 		BigDecimal discount = null;
-		if (totalNumberOfBeers.compareTo(new BigDecimal(20)) > 0) {
+		if (totalNumberOfBeers > 20) {
 			discount = new BigDecimal(0.2);
-		} else if (totalNumberOfBeers.compareTo(new BigDecimal(10)) > 0) {
+		} else if (totalNumberOfBeers > 10) {
 			discount = new BigDecimal(0.1);
 		}
 

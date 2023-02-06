@@ -1,7 +1,6 @@
 package com.brewery.wholesaler.assessment.business.response;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -16,7 +15,7 @@ public class WholesalerStockResponse implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private String id;
-	private BigDecimal stock;
+	private Integer stock;
 	private String beerId;
 	private String wholesalerId;
 }
