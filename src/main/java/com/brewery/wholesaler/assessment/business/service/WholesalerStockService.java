@@ -16,10 +16,9 @@ public class WholesalerStockService extends BaseService<WholesalerStock, String>
 	@Autowired
 	WholesalerStockRepository wholesalerStockRepository;
 
-	public WholesalerStock addWholesalerStock(WholesalerStockRequest request) {
-		return save(
-				WholesalerStock.builder().stock(request.getStock()).beer(Beer.builder().id(request.getBeerId()).build())
-						.wholesaler(Wholesaler.builder().id(request.getWholesalerId()).build()).build());
+	public WholesalerStock addWholesalerStock(String wholesalerId, String beerId, WholesalerStockRequest request) {
+		return save(WholesalerStock.builder().stock(request.getStock()).beer(Beer.builder().id(beerId).build())
+				.wholesaler(Wholesaler.builder().id(wholesalerId).build()).build());
 	}
 
 	public WholesalerStock patchWholesalerStock(WholesalerStock wholesalerStock, PatchWholesalerStockRequest request) {

@@ -30,17 +30,18 @@ public class BreweryWholesaleController {
 	@Autowired
 	BreweryWholesaleService breweryWholesaleService;
 
-	@GetMapping(value = "/{breweryId}/beers")
+	@GetMapping(value = "/breweries/{breweryId}/beers")
 	public BaseResponse<List<BeerResponse>> getBeerListByBreweryId(@PathVariable String breweryId) {
 		BaseResponse<List<BeerResponse>> response = new BaseResponse<>();
 		response.setData(breweryWholesaleService.getBeerListByBreweryId(breweryId));
 		return response;
 	}
 
-	@PostMapping(value = "/beers")
-	public BaseResponse<BeerResponse> addBeer(@RequestBody @Validated BeerRequest request) throws Exception {
+	@PostMapping(value = "/breweries/{breweryId}/beers")
+	public BaseResponse<BeerResponse> addBeer(@PathVariable String breweryId,
+			@RequestBody @Validated BeerRequest request) throws Exception {
 		BaseResponse<BeerResponse> response = new BaseResponse<>();
-		response.setData(breweryWholesaleService.addBeer(request));
+		response.setData(breweryWholesaleService.addBeer(breweryId, request));
 		return response;
 	}
 
@@ -51,11 +52,11 @@ public class BreweryWholesaleController {
 		return response;
 	}
 
-	@PostMapping(value = "/wholesaler-stock")
-	public BaseResponse<WholesalerStockResponse> addWholesalerStock(
-			@RequestBody @Validated WholesalerStockRequest request) throws Exception {
+	@PostMapping(value = "/wholesalers/{wholesalerId}/beers/{beerId}/wholesaler-stock")
+	public BaseResponse<WholesalerStockResponse> addWholesalerStock(@PathVariable String wholesalerId,
+			@PathVariable String beerId, @RequestBody @Validated WholesalerStockRequest request) throws Exception {
 		BaseResponse<WholesalerStockResponse> response = new BaseResponse<>();
-		response.setData(breweryWholesaleService.addWholesalerStock(request));
+		response.setData(breweryWholesaleService.addWholesalerStock(wholesalerId, beerId, request));
 		return response;
 	}
 

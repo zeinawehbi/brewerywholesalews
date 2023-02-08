@@ -63,9 +63,8 @@ class AssessmentApplicationTests {
 	@Test
 	@Order(1)
 	public void testAddBeer() {
-		BeerRequest request = new BeerRequest(brewery.getId(), "Leffe Blonde", new BigDecimal(6.6),
-				new BigDecimal(2.20));
-		beer = beerService.addBeer(request);
+		BeerRequest request = new BeerRequest("Leffe Blonde", new BigDecimal(6.6), new BigDecimal(2.20));
+		beer = beerService.addBeer(brewery.getId(), request);
 		assertTrue(beerService.existsById(beer.getId()));
 	}
 
@@ -83,9 +82,9 @@ class AssessmentApplicationTests {
 	public void testAddWholesalerStock() {
 		assertEquals(wholesalerStockService.getCountByWholesalerIdAndBeerId(wholesaler.getId(), beer.getId()), 0);
 
-		WholesalerStockRequest wholesalerStockRequest = new WholesalerStockRequest(10, beer.getId(),
-				wholesaler.getId());
-		wholesalerStock = wholesalerStockService.addWholesalerStock(wholesalerStockRequest);
+		WholesalerStockRequest wholesalerStockRequest = new WholesalerStockRequest(10);
+		wholesalerStock = wholesalerStockService.addWholesalerStock(wholesaler.getId(), beer.getId(),
+				wholesalerStockRequest);
 		assertTrue(wholesalerStockService.existsById(wholesalerStock.getId()));
 		assertEquals(wholesalerStockService.getCountByWholesalerIdAndBeerId(wholesaler.getId(), beer.getId()), 1);
 	}

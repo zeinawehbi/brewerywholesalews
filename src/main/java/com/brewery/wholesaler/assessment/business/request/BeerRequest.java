@@ -19,10 +19,6 @@ import lombok.NoArgsConstructor;
 public class BeerRequest implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	@NotBlank(message = "Brewery Id must not be empty")
-	@Size(max = 36, message = "Brewery Id should be maximum of 36 characters")
-	private String breweryId;
-
 	@NotBlank(message = "Beer name must not be empty")
 	@Size(max = 500, message = "Beer name should be maximum of 500 characters")
 	private String name;

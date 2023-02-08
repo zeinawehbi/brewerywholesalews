@@ -23,6 +23,10 @@ import com.brewery.wholesaler.assessment.business.response.beans.BeerQuoteRespon
 import com.brewery.wholesaler.assessment.business.response.beans.DataBaseResponse;
 import com.brewery.wholesaler.assessment.data.entity.Beer;
 import com.brewery.wholesaler.assessment.data.entity.WholesalerStock;
+import com.brewery.wholesaler.assessment.exception.BadRequestException;
+import com.brewery.wholesaler.assessment.exception.ConflictException;
+import com.brewery.wholesaler.assessment.exception.NotFoundException;
+import com.brewery.wholesaler.assessment.exception.UnprocessableEntityException;
 import com.brewery.wholesaler.assessment.utils.ResponseUtilities;
 
 @Service
@@ -58,12 +62,12 @@ public class BreweryWholesaleService {
 		return responseUtilities.getContent(response);
 	}
 
-	public DataBaseResponse<BeerResponse> addBeer(BeerRequest request) throws Exception {
-		if (!breweryService.existsById(request.getBreweryId())) {
-			throw new Exception("Brewery doesn't exist");
+	public DataBaseResponse<BeerResponse> addBeer(String breweryId, BeerRequest request) throws Exception {
+		if (!breweryService.existsById(breweryId)) {
+			throw new NotFoundException("Brewery doesn't exist");
 		}
 
-		Beer beer = beerService.addBeer(request);
+		Beer beer = beerService.addBeer(breweryId, request);
 		if (beer == null) {
 			throw new Exception("Beer was not added successfully!");
 		}
@@ -73,32 +77,31 @@ public class BreweryWholesaleService {
 
 	public DataBaseResponse<String> deleteBeer(String beerId) throws Exception {
 		if (!beerService.existsById(beerId)) {
-			throw new Exception("Beer doesn't exist!");
+			throw new NotFoundException("Beer doesn't exist!");
 		}
 		if (wholesalerStockService.getCountByBeerId(beerId) != 0) {
-			throw new Exception("Beer cannot be deleted as it is already in a wholesaler's stock");
+			throw new ConflictException("Beer cannot be deleted as it is already in a wholesaler's stock");
 		}
 
 		beerService.deleteById(beerId);
 		return responseUtilities.getContent("Beer is deleted successfully!");
 	}
 
-	public DataBaseResponse<WholesalerStockResponse> addWholesalerStock(WholesalerStockRequest request)
-			throws Exception {
-		if (wholesalerStockService.getCountByWholesalerIdAndBeerId(request.getWholesalerId(),
-				request.getBeerId()) != 0) {
-			throw new Exception("Stock of this beer already exists for this wholesaler");
+	public DataBaseResponse<WholesalerStockResponse> addWholesalerStock(String wholesalerId, String beerId,
+			WholesalerStockRequest request) throws Exception {
+		if (!wholesalerService.existsById(wholesalerId)) {
+			throw new NotFoundException("The wholesaler must exist");
 		}
 
-		if (!wholesalerService.existsById(request.getWholesalerId())) {
-			throw new Exception("The wholesaler must exist");
+		if (!beerService.existsById(beerId)) {
+			throw new NotFoundException("Beer doesn't exist!");
 		}
 
-		if (!beerService.existsById(request.getBeerId())) {
-			throw new Exception("Beer doesn't exist!");
+		if (wholesalerStockService.getCountByWholesalerIdAndBeerId(wholesalerId, beerId) != 0) {
+			throw new ConflictException("Stock of this beer already exists for this wholesaler");
 		}
 
-		WholesalerStock wholesalerStock = wholesalerStockService.addWholesalerStock(request);
+		WholesalerStock wholesalerStock = wholesalerStockService.addWholesalerStock(wholesalerId, beerId, request);
 		if (wholesalerStock == null) {
 			throw new Exception("Stock was not added successfully!");
 		}
@@ -111,7 +114,7 @@ public class BreweryWholesaleService {
 			PatchWholesalerStockRequest request) throws Exception {
 		Optional<WholesalerStock> wholesalerStock = wholesalerStockService.findById(wholesalerStockId);
 		if (wholesalerStock == null || !wholesalerStock.isPresent()) {
-			throw new Exception("The wholesaler stock doesn't exist");
+			throw new NotFoundException("The wholesaler stock doesn't exist");
 		}
 		WholesalerStock wholesalerStockEntity = wholesalerStockService.patchWholesalerStock(wholesalerStock.get(),
 				request);
@@ -125,14 +128,14 @@ public class BreweryWholesaleService {
 	public DataBaseResponse<QuoteResponse> requestQuote(QuoteRequest request) throws Exception {
 		String wholesalerId = request.getWholesalerId();
 		if (!wholesalerService.existsById(wholesalerId)) {
-			throw new Exception("The wholesaler must exist");
+			throw new NotFoundException("The wholesaler must exist");
 		}
 		Map<String, Integer> beerQuoteMap = new HashMap<>();
 		try {
 			beerQuoteMap = request.getBeerList().stream()
 					.collect(Collectors.toMap(BeerQuoteRequest::getBeerId, BeerQuoteRequest::getNumberOfBeers));
 		} catch (IllegalStateException ex) {
-			throw new Exception("There can't be any duplicate in the order");
+			throw new BadRequestException("There can't be any duplicate in the order");
 		}
 
 		WholesalerStock wholesalerStock = null;
@@ -143,11 +146,12 @@ public class BreweryWholesaleService {
 			wholesalerStock = wholesalerStockService.getWholesalerStockByWholesalerIdAndBeerId(wholesalerId,
 					beerQuote.getKey());
 			if (wholesalerStock == null) {
-				throw new Exception("The beer must be sold by the wholesaler");
+				throw new UnprocessableEntityException("The beer must be sold by the wholesaler");
 			}
 
 			if (beerQuote.getValue() > wholesalerStock.getStock()) {
-				throw new Exception("The number of beers ordered cannot be greater than the wholesaler's stock");
+				throw new UnprocessableEntityException(
+						"The number of beers ordered cannot be greater than the wholesaler's stock");
 			}
 			totalNumberOfBeers = totalNumberOfBeers + beerQuote.getValue();
 			totalPrice = totalPrice

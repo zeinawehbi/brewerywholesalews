@@ -14,8 +14,8 @@ public class BeerService extends BaseService<Beer, String> {
 	@Autowired
 	BeerRepository beerRepository;
 
-	public Beer addBeer(BeerRequest request) {
-		return save(Beer.builder().brewery(Brewery.builder().id(request.getBreweryId()).build())
+	public Beer addBeer(String breweryId, BeerRequest request) {
+		return save(Beer.builder().brewery(Brewery.builder().id(breweryId).build())
 				.alcoholContent(request.getAlcoholContent()).name(request.getName()).price(request.getPrice()).build());
 	}
 
